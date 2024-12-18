@@ -14,8 +14,31 @@ const io = require("socket.io")(server, {
     },
 });
 
+let onlineUsers = [];
+
+const addNewUser = (userId, socketId) => {
+    !onlineUsers.some((user) => user.userId === userId) && onlineUsers.push({ userId, socketId });
+};
+
+const removeUser = (socketId) => {
+    onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId);
+};
+
+const getUser = (userId) => {
+    return onlineUsers.find((user) => user.userId === userId);
+};
+
 io.on("connection", (socket) => {
-    console.log("Người dùng kết nối:", socket.id);
+    socket.on("newUser", (userId) => {
+        addNewUser(userId, socket.id);
+        io.emit("getOnlineUsers", onlineUsers);
+    });
+
+    socket.on("disconnect", () => {
+        removeUser(socket.id);
+
+        io.emit("getOnlineUsers", onlineUsers);
+    });
 
     socket.on("sendMessage", async (data) => {
         const { chatRoomId, message, userId, token } = data;
