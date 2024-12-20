@@ -17,7 +17,7 @@ const io = require("socket.io")(server, {
 let onlineUsers = [];
 
 const addNewUser = (userId, socketId) => {
-    !onlineUsers.some((user) => user.userId === userId) && onlineUsers.push({ userId, socketId });
+    !onlineUsers.some((user) => user.userId === userId) && onlineUsers.push({ ...userId, socketId });
 };
 
 const removeUser = (socketId) => {
@@ -25,23 +25,35 @@ const removeUser = (socketId) => {
 };
 
 const getUser = (userId) => {
-    return onlineUsers.find((user) => user.userId === userId);
+    return onlineUsers.find((user) => user._id === userId);
 };
 
 io.on("connection", (socket) => {
     socket.on("newUser", (userId) => {
         addNewUser(userId, socket.id);
+        console.log("onlineUsers:", onlineUsers);
         io.emit("getOnlineUsers", onlineUsers);
     });
 
     socket.on("disconnect", () => {
         removeUser(socket.id);
-
+        console.log("onlineUsers:", onlineUsers);
         io.emit("getOnlineUsers", onlineUsers);
+    });
+
+    socket.on("sendMessageCommu", async (data) => {
+        const { userId, message, image, token } = data;
+        try {
+            await axios.post(process.env.MONGO_URI + "/chatcommu", { userId, message, image }, { headers: { Authorization: `Bearer ${token}` } });
+            io.emit("newMessageCommu", data);
+        } catch (error) {
+            console.error("Error sending message to backend:", error);
+        }
     });
 
     socket.on("sendMessage", async (data) => {
         const { chatRoomId, message, userId, token } = data;
+        console.log(data);
         try {
             // Gọi API từ backend để lưu tin nhắn
             const response = await axios.put(
@@ -68,6 +80,12 @@ io.on("connection", (socket) => {
     socket.on("leaveRoom", (roomId) => {
         socket.leave(roomId);
         console.log(`Người dùng ${socket.id} đã rời khỏi phòng ${roomId}`);
+    });
+
+    socket.on("userDisconnect", () => {
+        removeUser(socket.id);
+        console.log("onlineUsers:", onlineUsers);
+        io.emit("getOnlineUsers", onlineUsers);
     });
 });
 
