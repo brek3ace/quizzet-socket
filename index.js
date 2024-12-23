@@ -41,20 +41,12 @@ io.on("connection", (socket) => {
         io.emit("getOnlineUsers", onlineUsers);
     });
 
-    socket.on("typing", (userId, roomId) => {
-        socket.to(roomId).emit("typing", userId); // Phát sự kiện "typing" cho tất cả các client trong phòng trừ chính mình
-    });
-
-    // Nhận sự kiện "stopTyping" khi người dùng ngừng gõ
-    socket.on("stopTyping", (userId, roomId) => {
-        socket.to(roomId).emit("stopTyping", userId); // Phát sự kiện "stopTyping" cho tất cả các client trong phòng trừ chính mình
-    });
-
     socket.on("sendMessageCommu", async (data) => {
         const { userId, message, image, token, replyTo } = data;
+        console.log(data);
         try {
-            await axios.post(process.env.MONGO_URI + "/chatcommu", { userId, message, image, replyTo }, { headers: { Authorization: `Bearer ${token}` } });
-            io.emit("newMessageCommu", data);
+            const chat = await axios.post(process.env.MONGO_URI + "/chatcommu", { userId, message, image, replyTo }, { headers: { Authorization: `Bearer ${token}` } });
+            io.emit("newMessageCommu", chat.data);
         } catch (error) {
             console.error("Error sending message to backend:", error);
         }
