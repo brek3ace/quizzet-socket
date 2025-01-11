@@ -42,24 +42,33 @@ io.on("connection", (socket) => {
     });
 
     socket.on("sendMessageCommu", async (data) => {
-        const { userId, message, image, token, replyTo } = data;
-        console.log(data);
+        const { sender, text, image, token, replyTo } = data;
         try {
-            const chat = await axios.post(process.env.MONGO_URI + "/chatcommu", { userId, message, image, replyTo }, { headers: { Authorization: `Bearer ${token}` } });
+            const chat = await axios.post(process.env.MONGO_URI + "/chatcommu", { sender, text, image, replyTo }, { headers: { Authorization: `Bearer ${token}` } });
             io.emit("newMessageCommu", chat.data);
         } catch (error) {
             console.error("Error sending message to backend:", error);
         }
     });
 
-    socket.on("sendMessage", async (data) => {
-        const { chatRoomId, message, userId, token } = data;
+    socket.on("unsendMessageCommu", async (data) => {
+        const { sender, messageId, token } = data;
         console.log(data);
+        try {
+            const chat = await axios.post(process.env.MONGO_URI + "/chatcommu/unsend", { sender, messageId }, { headers: { Authorization: `Bearer ${token}` } });
+            io.emit("replyUnsendMessageCommu", messageId);
+        } catch (error) {
+            console.error("Error sending message to backend:", error);
+        }
+    });
+
+    socket.on("sendMessage", async (data) => {
+        const { chatRoomId, message, image, replyTo, userId, token } = data;
         try {
             // Gọi API từ backend để lưu tin nhắn
             const response = await axios.put(
                 `${process.env.MONGO_URI}/chat/${chatRoomId}`,
-                { text: message, userId },
+                { text: message, userId, image, replyTo },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`, // Thêm token vào header
