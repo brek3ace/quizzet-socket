@@ -43,8 +43,10 @@ io.on("connection", (socket) => {
 
     socket.on("sendMessageCommu", async (data) => {
         const { userId, message, image, token, replyTo } = data;
+
         try {
             const chat = await axios.post(process.env.MONGO_URI + "/chatcommu", { userId, message, image, replyTo }, { headers: { Authorization: `Bearer ${token}` } });
+
             io.emit("newMessageCommu", chat.data);
         } catch (error) {
             console.error("Error sending message to backend:", error);
@@ -62,7 +64,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("sendMessage", async (data) => {
-        const { displayName, chatRoomId, message, image, replyTo, userId, token } = data;
+        const { profilePicture, displayName, chatRoomId, message, image, replyTo, userId, token } = data;
         try {
             // Gọi API từ backend để lưu tin nhắn
             const response = await axios.put(
@@ -75,7 +77,7 @@ io.on("connection", (socket) => {
                 }
             );
             // Nếu lưu thành công, phát lại tin nhắn cho các client khác
-            io.to(chatRoomId).emit("message", { ...response.data, displayName });
+            io.to(chatRoomId).emit("message", { ...response.data, displayName, profilePicture });
         } catch (error) {
             console.log("Lỗi lưu tin nhắn:", error);
         }
