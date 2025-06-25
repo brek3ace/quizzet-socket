@@ -15,7 +15,6 @@ const io = require("socket.io")(server, {
 });
 
 let onlineUsers = [];
-
 const addNewUser = (userId, socketId) => {
     !onlineUsers.some((user) => user.userId === userId) && onlineUsers.push({ ...userId, socketId });
 };
@@ -60,6 +59,16 @@ io.on("connection", (socket) => {
             io.emit("replyUnsendMessageCommu", messageId);
         } catch (error) {
             console.error("Error sending message to backend:", error);
+        }
+    });
+
+    socket.on("reactMessageCommu", async (data) => {
+        const { userId, messageId, emoji, token } = data;
+        try {
+            const chat = await axios.post(process.env.MONGO_URI + "/chatcommu/react", { userId, messageId, emoji }, { headers: { Authorization: `Bearer ${token}` } });
+            io.emit("replyReactMessageCommu", messageId, chat.data.reactions);
+        } catch (error) {
+            console.error("Error sending reaction to backend:", error);
         }
     });
 
